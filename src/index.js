@@ -1,7 +1,9 @@
+import "dotenv/config";
 import { Command } from "commander";
 import prompts from "prompts";
 import figlet from "figlet";
 import inquirer from "inquirer";
+import chalk from "chalk";
 
 const program = new Command();
 
@@ -67,7 +69,6 @@ async function addNotes() {
 
   optionsDisplay();
 }
-
 async function addNotesDisplay() {
   const response = await prompts([
     {
@@ -97,11 +98,10 @@ async function addNotesDisplay() {
 
   return response;
 }
-
 function addNotesToTheDatabase(annotationData) {
   if (annotationData) {
     try {
-      fetch('http://localhost:3000/notes', {
+      fetch(`${process.env.URL_SERVER}notes`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -114,8 +114,54 @@ function addNotesToTheDatabase(annotationData) {
   }
 }
 
-function listNotes() {
+async function listNotes() {
+  const notes = await fetch(`${process.env.URL_SERVER}notes`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json"
+    }
+  })
 
+  const data = await notes.json();
+  listNotesDisplay(data);
+}
+
+async function listNotesDisplay(notesData) {
+  const notesNames = notesData.map(n => ({
+    name: n.noteName,
+    value: n.id
+  }));
+
+  const response = await inquirer.prompt([
+    {
+      type: "list",
+      name: "id",
+      message: "Escolha a anotacao que quer visualizar:",
+      choices: notesNames
+    }
+  ])
+
+  fetchAnnotationData(response);
+}
+
+async function fetchAnnotationData(noteId) {
+  const response = await fetch(`${process.env.URL_SERVER}notes/${noteId.id}`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json"
+    }
+  });
+
+  const data = await response.json();
+  
+  showNote(data);
+}
+
+function showNote(notes) {
+  console.log(chalk[notes.noteColor](notes.noteName));
+  console.log("-------------------------------------------------------");
+  console.log(notes.noteDescription, "\n\n");
+  optionsDisplay();
 }
 
 function editNotes() {
