@@ -40,17 +40,16 @@ async function optionsDisplay() {
 
   optionsMenu(answers.option);
 }
-
 function optionsMenu(option) {
   switch (option) {
     case "Adicionar":
       addNotes();
       break;
     case "Listar":
-      listNotes();
+      showNote();
       break;
     case "Editar":
-      editNotes();
+      searchForTheAnnotationToBeEdited();
       break;
     case "Excluir":
       deleteNotes();
@@ -123,10 +122,11 @@ async function listNotes() {
   })
 
   const data = await notes.json();
-  listNotesDisplay(data);
+  return data;
 }
+async function listNotesDisplay() {
+  const notesData = await listNotes();
 
-async function listNotesDisplay(notesData) {
   const notesNames = notesData.map(n => ({
     name: n.noteName,
     value: n.id
@@ -141,10 +141,11 @@ async function listNotesDisplay(notesData) {
     }
   ])
 
-  fetchAnnotationData(response);
+  return response;
 }
+async function fetchAnnotationData() {
+  const noteId = await listNotesDisplay();
 
-async function fetchAnnotationData(noteId) {
   const response = await fetch(`${process.env.URL_SERVER}notes/${noteId.id}`, {
     method: "GET",
     headers: {
@@ -154,18 +155,73 @@ async function fetchAnnotationData(noteId) {
 
   const data = await response.json();
   
-  showNote(data);
+  return data;
 }
 
-function showNote(notes) {
+async function showNote() {
+  const notes = await fetchAnnotationData();
+
   console.log(chalk[notes.noteColor](notes.noteName));
   console.log("-------------------------------------------------------");
   console.log(notes.noteDescription, "\n\n");
+
   optionsDisplay();
 }
 
-function editNotes() {
+async function searchForTheAnnotationToBeEdited() {
+  const notes = await fetchAnnotationData();
 
+  const response = await inquirer.prompt([
+    {
+      type: "list",
+      name: "whatToEdit",
+      message: "O que voce deseja editar? ",
+      choices: [ { name: "Nome", value: "name" }, { name: "Descricao", value: "description"} ]
+    }
+  ]);
+
+  let newData = null;
+
+  switch (response.whatToEdit) {
+    case "name":
+      newData = await prompts({
+        type: "text",
+        name: "newName",
+        message: "Digite o novo nome da anotacao: ",
+      })
+
+      notes.noteName = newData.newName;
+      break;
+    case "description":
+      newData = await prompts({
+        type: "text",
+        name: "newDescription",
+        message: "Digite a nova descricao da anotacao: ",
+      })
+
+      notes.noteDescription = newData.newDescription;
+      break;
+  }
+
+  await editNote(notes);
+
+  optionsDisplay();
+}
+
+async function editNote(newData) {
+  try {
+    const response = await fetch(`${process.env.URL_SERVER}notes/${newData.id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(newData)
+    });
+
+    console.log("Anotacao atualizada com sucesso!\n\n");
+  } catch (err) {
+    console.log("Erro na atualizacao da anotacao. Erro: ", err, "\n\n");
+  }
 }
 
 function deleteNotes() {
