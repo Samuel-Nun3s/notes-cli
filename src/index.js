@@ -52,7 +52,7 @@ function optionsMenu(option) {
       searchForTheAnnotationToBeEdited();
       break;
     case "Excluir":
-      deleteNotes();
+      searchForTheAnnotationToBeDeleted();
       break;
     case "Sair":
       exitNotesCLI();
@@ -62,7 +62,10 @@ function optionsMenu(option) {
 
 async function addNotes() {
   const notes = await addNotesDisplay();
-  console.log("notes =>", notes);
+  
+  if (!notes.noteName || !notes.noteDescription) {
+    throw new Error("A anotacao deve ter nome e descricao!");
+  }
 
   addNotesToTheDatabase(notes);
 
@@ -224,8 +227,38 @@ async function editNote(newData) {
   }
 }
 
-function deleteNotes() {
+async function searchForTheAnnotationToBeDeleted() {
+  const notes = await fetchAnnotationData();
 
+  const response = await inquirer.prompt([
+    {
+      type: "list",
+      name: "doYouReallyWantToDelete",
+      message: "Tem certeza que deseja excluir essa anotacao?",
+      choices: [ { name: "Sim", value: true }, { name: "Nao", value: false } ]
+    }
+  ])
+
+  if (response.doYouReallyWantToDelete) {
+    await deleteNotes(notes.id);
+  }
+
+  optionsDisplay();
+} 
+
+async function deleteNotes(notesId) {
+  try {
+    fetch(`${process.env.URL_SERVER}notes/${notesId}`, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json"
+      }
+    });
+
+    console.log("Anotacao excluida com sucesso!\n\n");
+  } catch (err) {
+    console.log("Erro ao excluir a anotacao! Erro: ", err, "\n\n");
+  }
 }
 
 function exitNotesCLI() {
