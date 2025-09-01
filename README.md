@@ -129,5 +129,5 @@ Revisar sobre modularização
 
 ## 👨‍💻 Autor
 
-Feito com ❤️ por **[Samuel Nunes](https://github.com/samuel-nun3s)**
+Feito por **[Samuel Nunes](https://github.com/samuel-nun3s)**
 Contribuições são bem-vindas!
